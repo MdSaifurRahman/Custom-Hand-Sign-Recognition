@@ -1,39 +1,45 @@
 import os
+import cv2 as cv
 
-import cv2
+DIRECTORY = "./data"
+if not os.path.exists(DIRECTORY):
+    os.makedirs(DIRECTORY)
 
+no_of_labels = 26
+size = 100
 
-DATA_DIR = './data'
-if not os.path.exists(DATA_DIR):
-    os.makedirs(DATA_DIR)
+capture = cv.VideoCapture(0)
+for i in range(no_of_labels):
+    if not os.path.exists(os.path.join(DIRECTORY, str(i))):
+        os.makedirs(os.path.join(DIRECTORY, str(i)))
 
-number_of_classes = 3
-dataset_size = 100
-
-cap = cv2.VideoCapture(0)
-for j in range(number_of_classes):
-    if not os.path.exists(os.path.join(DATA_DIR, str(j))):
-        os.makedirs(os.path.join(DATA_DIR, str(j)))
-
-    print('Collecting data for class {}'.format(j))
+    print("Collecting data for class {}".format(i))
 
     done = False
     while True:
-        ret, frame = cap.read()
-        cv2.putText(frame, 'Ready? Press "Q" ! :)', (100, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.3, (0, 255, 0), 3,
-                    cv2.LINE_AA)
-        cv2.imshow('frame', frame)
-        if cv2.waitKey(25) == ord('q'):
+        ret, frame = capture.read()
+        cv.putText(
+            frame,
+            'Press "D" to Start ! :)',
+            (100, 50),
+            cv.FONT_HERSHEY_SIMPLEX,
+            1.3,
+            (0, 255, 0),
+            3,
+            cv.LINE_AA,
+        )
+        cv.imshow("Live", frame)
+        if cv.waitKey(25) == ord("d"):
             break
 
-    counter = 0
-    while counter < dataset_size:
-        ret, frame = cap.read()
-        cv2.imshow('frame', frame)
-        cv2.waitKey(25)
-        cv2.imwrite(os.path.join(DATA_DIR, str(j), '{}.jpg'.format(counter)), frame)
+    c = 0
+    while c < size:
+        ret, frame = capture.read()
+        cv.imshow("Live", frame)
+        cv.waitKey(25)
+        cv.imwrite(os.path.join(DIRECTORY, str(i), "{}.jpg".format(c)), frame)
 
-        counter += 1
+        c += 1
 
-cap.release()
-cv2.destroyAllWindows()
+capture.release()
+cv.destroyAllWindows()

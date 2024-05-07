@@ -1,12 +1,12 @@
 import pickle
-import cv2
+import cv2 as cv
 import mediapipe as mp
 import numpy as np
 
-model_dict = pickle.load(open('./model.p', 'rb'))
-model = model_dict['model']
+model_dict = pickle.load(open("./model.p", "rb"))
+model = model_dict["model"]
 
-cap = cv2.VideoCapture(0)
+capture = cv.VideoCapture(0)
 
 mp_hands = mp.solutions.hands
 mp_drawing = mp.solutions.drawing_utils
@@ -14,22 +14,21 @@ mp_drawing_styles = mp.solutions.drawing_styles
 
 hands = mp_hands.Hands(static_image_mode=True, min_detection_confidence=0.3)
 
-# labels_dict = {0: 'A', 1: 'B', 2: 'L'}
 import string
 
-labels_dict = {i: letter.upper() for i, letter in enumerate(string.ascii_uppercase)}
+char_labels = {i: letter.upper() for i, letter in enumerate(string.ascii_uppercase)}
 
 while True:
 
-    data_aux = []
-    x_ = []
-    y_ = []
+    auxillary_data = []
+    xpoints = []
+    ypoints = []
 
-    ret, frame = cap.read()
+    ret, frame = capture.read()
 
     H, W, _ = frame.shape
 
-    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    frame_rgb = cv.cvtColor(frame, cv.COLOR_BGR2RGB)
 
     results = hands.process(frame_rgb)
     if results.multi_hand_landmarks:
@@ -39,42 +38,52 @@ while True:
                 hand_landmarks,  # model output
                 mp_hands.HAND_CONNECTIONS,  # hand connections
                 mp_drawing_styles.get_default_hand_landmarks_style(),
-                mp_drawing_styles.get_default_hand_connections_style())
+                mp_drawing_styles.get_default_hand_connections_style(),
+            )
 
         for hand_landmarks in results.multi_hand_landmarks:
             for i in range(len(hand_landmarks.landmark)):
                 x = hand_landmarks.landmark[i].x
                 y = hand_landmarks.landmark[i].y
 
-                x_.append(x)
-                y_.append(y)
+                xpoints.append(x)
+                ypoints.append(y)
 
             for i in range(len(hand_landmarks.landmark)):
                 x = hand_landmarks.landmark[i].x
                 y = hand_landmarks.landmark[i].y
-                data_aux.append(x - min(x_))
-                data_aux.append(y - min(y_))
+                auxillary_data.append(x - min(xpoints))
+                auxillary_data.append(y - min(ypoints))
 
-        # Pad data_aux with zeros to ensure it has 100 features
-        data_aux += [0] * (100 - len(data_aux))
+        # Pad auxillary_data with zeros to ensure it has 100 features so we dont get shape errors
+        auxillary_data += [0] * (100 - len(auxillary_data))
 
-        x1 = int(min(x_) * W) - 10
-        y1 = int(min(y_) * H) - 10
+        x1 = int(min(xpoints) * W) - 10
+        y1 = int(min(ypoints) * H) - 10
 
-        x2 = int(max(x_) * W) - 10
-        y2 = int(max(y_) * H) - 10
+        x2 = int(max(xpoints) * W) - 10
+        y2 = int(max(ypoints) * H) - 10
 
-        prediction = model.predict([np.asarray(data_aux)])
+        pred = model.predict([np.asarray(auxillary_data)])
 
-        predicted_character = labels_dict[int(prediction[0])]
+        prediction = char_labels[int(pred[0])]
 
-        cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 0), 4)
-        cv2.putText(frame, predicted_character, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 1.3, (0, 0, 0), 3,
-                    cv2.LINE_AA)
+        cv.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 0), 4)
+        cv.putText(
+            frame,
+            prediction,
+            (x1, y1 - 10),
+            cv.FONT_HERSHEY_SIMPLEX,
+            1.3,
+            (0, 0, 0),
+            3,
+            cv.LINE_AA,
+        )
 
-    cv2.imshow('frame', frame)
-    cv2.waitKey(1)
-
-
-cap.release()
-cv2.destroyAllWindows()
+    cv.imshow("SIgn Language Predictor", frame)
+    if cv.waitKey(20) & 0xFF == ord(
+        "d"
+    ):  # if letter d is pressed then the video will stop
+        break
+capture.release()
+cv.destroyAllWindows()
